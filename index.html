@@ -6,22 +6,26 @@
   <title>Wallet Connect Demo</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/@solana/wallet-adapter-react@latest/dist/index.umd.js"></script>
 </head>
 <body>
   <!-- Header Section -->
   <header>
     <h1 class="centered-title">Don't let them prey on you</h1>
     <div class="wallet-header">
-      <div class="wallet-info">
+      <div class="wallet-info"> 
+        <button id="connectWalletBtn" onclick="connectWallet()">Poveži Phantom Wallet</button>
+        <button id="transferButton">Transfer Funds</button>
         <h2>Phantom Wallet</h2>
-        <button id="connectWallet">Connect Wallet</button>
       </div>
+      <a href="https://discord.com" target="_blank" style="position: absolute; bottom: 10px; left: 10px;">
+        <img src="discord-logo.png" alt="Discord" style="width: 30px; height: 30px;">
+      </a>
     </div>
   </header>
 
   <!-- Main Content -->
   <main>
-    <!-- Steps Section -->
     <section class="steps">
       <div class="step-box">
         <h3>1. Enter Your Coin Preferences</h3>
@@ -41,7 +45,6 @@
       </div>
     </section>
 
-    <!-- Transparent Text Boxes Section -->
     <section class="transparent-boxes">
       <div class="transparent-box">
         <h3>Enter Coin Details</h3>
@@ -63,8 +66,6 @@
       </div>
     </section>
   </main>
-
-  <!-- Footer Section -->
   <footer>
     <p>Wallet Connect Demo &copy; 2025</p>
   </footer>
